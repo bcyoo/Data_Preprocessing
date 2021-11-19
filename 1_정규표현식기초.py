@@ -99,6 +99,13 @@ re.findall('[A-Z][a-z]+', doc)
 # 알파벳대문자로 시작하고, 소문자들로 이어지는 
 # 알파벳대문자 하나, 소문자 여러개
 re.findall('[A-Z][a-z]+', doc)
+# -
+
+re.findall('\s[0-9]+\s', doc)
+
+re.findall('\s[0-9][0-9]\s', doc)
+
+re.findall('[0-9]+\-[0-9]+\-[0-9]+', doc)
 
 # + colab={"base_uri": "https://localhost:8080/"} id="Lps_KMpSEKQx" outputId="9b2eaea9-04c8-4f5f-bd05-c07b69f2e37b"
 # 나이만 뽑기

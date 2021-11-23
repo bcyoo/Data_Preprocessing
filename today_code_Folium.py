@@ -79,7 +79,7 @@ fontprop = fm.FontProperties(fname=font_path, size=18)
 (ggplot(df)  ## gg plot 으로 시각화
  + aes(x='경도', y='위도')
  + geom_point() # 점포인트로 찍음
- + theme(text=element_text(family='NaumBarunGothic'))
+ + theme(text=element_text(family='font_name'))
 ) 
 
 # +
@@ -150,3 +150,196 @@ df_loc_notnull.shape
 df.loc[(df['위도'] < 26) | (df['경도'] >= 132)]
 
 df_loc_notnull['시도'].value_counts()
+
+(ggplot(df_loc_notnull)
+ + aes(x='경도', y='위도', color='시도')
+ + geom_point()
+ + theme(text=element_text(family=font_name))
+)
+
+# 전국적으로 어린이 공원이 가장 많은 것으로 보입니다.
+# 제주도는 한라산 아래 해안선과 유사한 모습으로 공원이 배치되어 있는 모습이 인상적입니다.
+(ggplot(df_loc_notnull)
+ + aes(x='경도', y='위도', color='공원구분', size='공원면적비율')
+ + geom_point()
+ + theme(text=element_text(family=font_name))
+)
+
+# 어린이 공원을 제외하고 찍어보자
+# 다음으로 많은 근린공원과 소공원이 많이 보임.
+(ggplot(df_loc_notnull.loc[df_loc_notnull['공원구분'] != '어린이공원'])
+ + aes(x='경도', y='위도', color='공원구분', size='공원면적비율')
+ + geom_point()
+ + theme(text=element_text(family=font_name))
+)
+
+df_loc_notnull.head()
+
+# +
+## 시도별 공원 비율
+
+df_do = pd.DataFrame(df['시도'].value_counts())
+df_do_normalize = pd.DataFrame(df['시도'].value_counts(normalize=True))
+df_sido = df_do.merge(df_do_normalize, left_index=True, right_index=True).reset_index()
+df_sido.columns = ['시도', '합계', '비율']
+df_sido.sort_values(by=['합계'], ascending=False)
+df_sido
+# -
+
+# 경기도가 압도적으로 많음
+(ggplot(df_sido.sort_values(by=['합계'], ascending=False))
+ + aes(x='시도', y='합계')
+ + geom_bar(stat='identity', position='dodge', fill='green')
+ + coord_flip()
+ + theme(text=element_text(family=font_name))
+)
+
+df_type = df['공원구분'].value_counts().reset_index()
+df_type.columns = ('공원구분', '합계')
+df_type
+
+#공원구분별 합계
+(ggplot(df_type)
+ + aes(x='공원구분', y='합계')
+ + geom_bar(stat='identity', position='dodge', fill='green')
+ + coord_flip()
+ + theme(text=element_text(family=font_name))
+)
+
+
+# +
+## 경기도에 가장 많은 공원이 있습니다.
+## 어떻게 분포 하였는지 확인해보자
+
+gg = df.loc[df['시도'] == '경기도']
+gg.shape
+# -
+
+gg_df = gg['공원구분'].value_counts().reset_index()
+gg_df.columns = ('공원구분', '합계')
+gg_df
+
+(ggplot(gg)
+ + aes(x='경도', y='위도', color='공원구분', size='공원면적비율') 
+ + geom_point()
+ + geom_jitter(color='lightgray', alpha=0.25)
+ + theme(text=element_text(family=font_name))
+)
+
+gg_suwon = gg.loc[gg['구군'] == '수원시']
+
+(ggplot(gg_suwon)
+ + aes(x='경도', y='위도', color='공원구분', size='공원면적비율') 
+ + geom_point()
+ + geom_jitter(color='lightgray', alpha=0.25)
+ + theme(text=element_text(family=font_name))
+)
+
+# +
+geo_df = gg_suwon
+map = folium.Map(location=[geo_df['위도'].mean(), geo_df['경도'].mean()], zoom_start=13)
+
+for n in geo_df.index:
+    df_name = geo_df.loc[n, '공원명'] + '-' + geo_df.loc[n, '소재지도로명주소']
+    icon_color = 'blue'
+    folium.CircleMarker(
+        location=[geo_df.loc[n, '위도'], geo_df.loc[n, '경도']],
+        radius=geo_df['공원면적비율'][n],
+        popup=park_name,
+        color=icon_color,
+        fill=True,
+        fill_color=icon_color
+    ).add_to(map)
+    
+map
+
+
+## null값으로 출력 불가능.
+# -
+
+# 경기도 일부 공원만 보기
+df_type = r'.*((역사|체육|수변|문화|묘지)공원).*'
+gg_sample = gg.loc[gg['공원구분'].str.match(df_type)]
+
+gg_sample.shape
+
+(ggplot(gg_sample)
+ + aes(x='경도', y='위도', color='공원구분') 
+ + geom_point()
+ + geom_jitter(fill='green', color='lightgray', alpha=0.25)
+ + theme(text=element_text(family=font_name))
+)
+
+seoul = df[df['시도'] == '서울특별시']
+seoul.shape
+
+seoul.head()
+
+(ggplot(seoul)
+ + aes(x='경도', y='위도', color='공원구분') 
+ + geom_point()
+ + theme(text=element_text(family=font_name))
+)
+
+seoul[seoul["경도"] > 127.4]
+
+seoul['공원구분'].value_counts()
+
+seoul_playground = df.loc[(df['공원구분'] == '어린이공원') & (df['시도'] == '서울특별시')]
+seoul_playground.head()
+
+(ggplot(seoul)
+ + aes(x='경도', y='위도', fill='구군')
+ + geom_point()
+ + theme(text=element_text(family=font_name))
+)
+
+gu = '강남구 강동구 강북구 강서구 관악구 광진구 구로구 금천구 노원구 도봉구 동대문구 동작구 마포구 서대문구 서초구 성동구 성북구 송파구 양천구 영등포구 용산구 은평구 종로구 중구 중랑구'
+gu = gu.split(' ')
+print('서울에는 {}개의 구가 있다.'.format(len(gu)))
+
+# 무악동이 구군 데이터에 잘못 들어와 있다. 전처리 해줄 필요가 있다.
+seoul_gu = seoul['구군'].value_counts().reset_index()
+seoul_gu_count = seoul_gu.shape[0]
+seoul_gu.head()
+
+seoul_gu.columns = ['구군', '합계']
+seoul_gu = seoul_gu.sort_values(by='합계', ascending=False)
+# 누락된 구를 찾기 위해 데이터프레임에 들어있는 구군을 추출한다.
+seoul_gu_unique = seoul_gu['구군'].unique()
+seoul_gu_unique
+
+exclude_gu = [g for g in gu if not g in seoul_gu_unique] 
+print('누락된 구: {}'.format(exclude_gu))
+error_gu = [g for g in seoul_gu_unique if not g in gu] 
+print('잘못들어간 구: {}'.format(error_gu))
+# 전체 구에서 누락된 구와 잘못들어간 구를 제외하고 계산해 본다.
+seoul_gu_count = len(gu) - len(exclude_gu) - len(error_gu)
+print('아래 데이터를 보니 몇개 구가 누락된것을 알 수 있다. 전체 {}개 구 중 {}개 구만 있다.'.format(len(gu), seoul_gu_count))
+seoul_gu
+
+# 위 데이터에서는 송파, 서초, 양천, 강남구에 공원이 많은 것으로 보여집니다.
+# 강남3구는 공원만 표시해 봅니다.
+geo_df = seoul.loc[seoul['구군'].str.match( r'((강남|서초|송파)구)')]
+geo_df = geo_df.loc[(geo_df['위도'].notnull()) & (geo_df['경도'].notnull())]
+geo_df.isnull().sum()
+
+# 서초구 데이터에 잘못된 위경도 데이터가 보입니다. 
+(ggplot(geo_df)
+ + aes(x='경도', y='위도', fill='구군', size='공원면적비율')
+ + geom_point()
+ + theme(text=element_text(family=font_name))
+)
+
+geo_df.shape
+
+
+
+# +
+geo_df.shape
+map = folium.Map(location=[geo_df['위도'].mean(), geo_df['경도'].mean()], zoom_start=13)
+
+for n in geo_df.index:
+    park_name = geo_df.loc[n, '공원명'] + ' - ' + geo_df.loc[n, '소재지도로명주소']
+    folium.Marker([geo_df.loc[n, '위도'], geo_df.loc[n, '경도']], popup=park_name).add_to(map)
+map

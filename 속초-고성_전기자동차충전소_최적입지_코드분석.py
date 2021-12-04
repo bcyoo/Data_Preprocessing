@@ -172,15 +172,118 @@ layer = pdk.Layer( 'PolygonLayer' , ## 사용하는 Layer type
                   df_08[(df_08['val'].isnull()==False) & df_08['val']!=0], # 시각화 DataFrame
                   get_polygon = 'coordinates', #geometry정보가 있는 컬럼 이름
                   get_fill_color = '[900, 255*정규화인구, 0, 정규화인구*10000]', #각 data 별 rgb 또는 rgba 값 (0~255) 
+                  pickable = True, # 지도와 interactive 한 동작 on
+                  auto_highlight= True # 마우스 오버(hover)시 박스 출력
                  )
+
+# Set the viewport location
+center = [128.5918, 38.20701] ## 속초 center lon, lat
+view_state = pdk.ViewState(
+    longitude = center[0], ## 경도
+    latitude = center[1],  ## 위도
+    zoom=11
+)
+
+# Render 
+r = pdk.Deck(layers=[layer], initial_view_state=view_state)
+
+r.to_html()
+
+# +
+## 혼잡빈도강도, 혼잡시간강도 분석
+# 목적 : 혼잡빈도강도와 혼잡시간빈도를 분석 차량이 많은 위치 파악
+## df_10 상세도로망 데이터
+## df_12 평일_전일_혼잡빈도강도
+## df_13 평일_전일_혼잡빈도강도
+
+## 도로폭이 넓을수록 노란색
+## 도로폭이 좁을수록 붉은색
+## 선이 굵으면 혼잡 강도가 높음
+## 선이 얇으면 혼잡 강도가 낮음
+
+
 # -
 
+df_10 = gpd.read_file('MOCT_LINK.json')
+df_10
+
+df_12 = pd.read_csv("속초-고성_2017-20년_혼잡빈도,시간_강도_평균값.csv", encoding='utf-8')
+df_12.head()
+
+df_12.columns
+
+isin_=df_10['ROAD_NAME'].isin(['동해대로', '청학로', '번영로', '중앙로', '장안로', '설악금강대교로', '미시령로', '청대로',
+       '온천로', '관광로', '수복로', '중앙시장로', '교동로', '청초호반로', '엑스포로', '조양로', '법대로',
+       '설악산로', '동해고속도로(삼척속초)', '장재터마을길', '진부령로', '간성로', '수성로'])
+df_10 = df_10.loc[isin_]
+df_10
+
+df = df_10
+df['coordinates'] = df['geometry'].apply(line_string_to_coordinates)
+## df_10의 geometry 컬럼에서 line_string_to_coordinates함수를 사용하여
+## coordinates컬럼에 lon경도, lat위도를 리스트로 변환하여 넣어줌
+df
 
 
+df = pd.DataFrame(df) # geopanadas 가 아닌 pandas 의 데이터프레임으로 꼭 바꿔줘야 합니다. 
+df.head()
+
+## lanes 컬럼의 차선 비율을 이용하여 WIDTH 컬럼을 생성함
+df.loc[df['LANES'] == 1, 'WIDTH'] = '2'
+df.loc[df['LANES'] == 2, 'WIDTH'] = '3'
+df.loc[df['LANES'] == 3, 'WIDTH'] = '4'
+df.loc[df['LANES'] == 4, 'WIDTH'] = '4'
+df.loc[df['LANES'] == 5, 'WIDTH'] = '5'
+df.loc[df['LANES'] == 6, 'WIDTH'] = '5'
+df.loc[df['LANES'] == 7, 'WIDTH'] = '5'
+
+## WIDTH 최대값에서 WIDTH 값을 나누어 정규화도로폭 컬럼을 생성함
+df['정규화도로폭'] = df['WIDTH'].apply(int) / df['WIDTH'].apply(int).max()
+df
+
+# +
+# 혼합빈도강도 양방향 총 합
+df_10_ = []
+
+for i in df.LINK_ID:
+    df_10_.append([i,sum(df_12[df_12['ITS LINK ID'].apply(str).str.contains(i)].혼잡빈도강도)])
+    
+df_10_ = pd.DataFrame(df_10_).fillna(0)
+df_10_.columns = ["LINK_ID", "혼잡빈도강도합"]
+df_10_12 = pd.merge(df, df_10_, on = 'LINK_ID' )
+
+# 혼잡빈도강도 합이 가장 높은 도로
+df_10_12.iloc[df_10_12["혼잡빈도강도합"].sort_values(ascending=False).index].reindex().head()
+
+# +
+## 도로폭이 넓을수록 노란색
+## 도로폭이 좁을수록 붉은색
+## 선이 굵으면 혼잡 강도가 높음
+## 선이 얇으면 혼잡 강도가 낮음
+
+layer = pdk.Layer('PathLayer', #사용하는 Layer type
+                  df_10_12,    # 시각화 DataFrame
+                  get_path = 'coordinates', # geometry 정보가 들어있는 컬럼
+                  get_width = '혼잡빈도강도합/10', ## 선의 굵기 표시
+                  get_color = '[255, 255 * 정규화도로폭, 120]', #각 data 별 rgb 또는 rgba 값 (0~255)
+                  pickable = True, # 지도와 interative 한 동작 om
+                  auto_highlight = True # 마우스 오버(hover) 시 박스 출력
+                )
+
+center = [128.5918, 38.20701] ## 속초 center lon경도, lat위도
+view_state = pdk.ViewState(
+    longitude = center[0], # 경도
+    latitude = center[1], #위도
+    zoom = 11
+)
+
+#Render
+
+r = pdk.Deck(layers = [layer], initial_view_state = view_state)
+
+r.to_html()
 
 
-
-
-
+# -
 
 

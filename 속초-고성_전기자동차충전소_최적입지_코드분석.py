@@ -345,13 +345,92 @@ len(df_14)
 df_14.isna().sum() ## 결측치 확인
 
 # +
-df_14_ = df_14[df_14['소유지구분코드'].isin(['02','04'])] ## 소유지구분코드 : 국유지 시/군
+df_14_ = df_14[df_14['소유구분코드'].isin(['02','04'])] ## 소유지구분코드 : 국유지 시/군
+
+df_14_possibel = df_14_possible = df_14[df_14['소유구분코드'].isin(['02','04'])
+                                        & (df_14['지목코드'].isin(['05','07','14','15','16','17',
+                                                              '18','19','20','27'])==False)]
+                    ## 02,04 국유지,시/군 포함 나머지 지목코드 임야, 염전, 도로, 철도 용지, 제방 , 하천, 수도시설 제외
+    
+## geometry to coordinates 
+df_14_possible['coordinates'] = df_14_possible['geometry'].apply(polygon_to_coordinates)
+
+## 설치 가능한 모든 polygone을 multipolygon으로 묶음
+from shapely.ops import cascaded_union
+boundary = gpd.GeoSeries(cascaded_union(df_14_possible['geometry'].buffer(0.001)))
+
+from geojson import Feature, FeatureCollection, dump
+MULTIPOLYGON =boundary[0]
+
+features = []
+features.append(Feature(geometry=MULTIPOLYGON, properties={"col": "privat"}))
+feature_collection = FeatureCollection(features)
+with open('geo_possible.geojson', 'w') as f:
+    dump(feature_collection, f)
+
+geo_possible= gpd.read_file("geo_possible.geojson")
+
+# +
+## 브로드캐스팅을 이용한 요소합 >> layer 평행이동
+## 요소합 진행 후, 마지막 데이터를 list로 형변환
+
+v = np.array([-0.0022, 0.0027])
+for i in range(len(df_14_possible['coordinates'])):
+    for j in range(len(df_14_possible['coordinates'].iloc[i])):
+            df_14_possible['coordinates'].iloc[i][j] = list(df_14_possible['coordinates'].iloc[i][j] + v)
+    
+df_14_possible['coordinates']
+
+# +
+layer = pdk.Layer( 'PolygonLayer', # 사용할 Layer 타입 
+                  df_14_possible, # 시각화에 쓰일 데이터프레임
+                  #df_result_fin[df_result_fin['val']!=0],
+                  get_polygon='coordinates', # geometry 정보를 담고있는 컬럼 이름 
+                  get_fill_color='[0, 255*1, 0,140]', # 각 데이터 별 rgb 또는 rgba 값 (0~255) 
+                  pickable=True, # 지도와 interactive 한 동작 on 
+                  auto_highlight=True # 마우스 오버(hover) 시 박스 출력 
+                 ) 
+
+# Set the viewport location 
+center = [128.5918, 38.20701] # 속초 센터 [128.5918, 38.20701]
+view_state = pdk.ViewState( 
+    longitude=center[0], 
+    latitude=center[1], 
+    zoom=10
+) 
 
 
+# Render 
+r = pdk.Deck(layers=[layer], initial_view_state=view_state,
+            ) 
+
+    
+r.to_html()
+
+# +
+## 입지선정지수 개발
+## 지역특성 요소 추출
+## 100 x 100 point 중 설치 가능한 point 필터링
+## > 100x100 중 설치가능한 multipolygon(polygon)에 있는 point를 필터링하는 시간이 굉장히 오래소요됨(약1시간)
+## df_result로 최종 분석 할 데이터셋을 만듬.
+
+
+###### 최종 분석 데이터 정제하기
+
+## 개발 가능한 grid point  찾기
+shapely.speedups.enable()
+df_result = df_08[['grid_id', 'val', 'geometry', 'coordinates', 'coord_cent', 'geo_cent']]
+df_result['val'] = df_result['val'].fillna(0)
+
+## 오래걸림
+point_cent = gpd.GeoDataFrame(df_result[['grid_id', 'geo_cent']], geometry = 'geo_cent')
+within_points = point_cent.buffer(0.00000001).within(geo_possible.loc[0, 'geometry'])
+pd.DataFrame(within_points).to_csv('within_points.csv', index = False)
+
+within_points = pd.read_csv('within_points.csv')
+df_result['개발가능'] = 0
+df_result['개발가능'][within_point['0']==True] = 1
+df_result[df_result['개발가능']==1]
 # -
-
-
-
-
 
 

@@ -284,6 +284,74 @@ r = pdk.Deck(layers = [layer], initial_view_state = view_state)
 r.to_html()
 
 
+# +
+## 혼잡시간강도 양방향 총 합
+
+df_10_ = []
+
+for i in df.LINK_ID:
+    df_10_.append([i, sum(df_12[df_12['ITS LINK ID'].apply(str).str.contains(i)].혼잡시간강도)])
+    
+df_10_ = pd.DataFrame(df_10_).fillna(0)
+df_10_.columns = ['LINK_ID', '혼잡시간강도합']
+df_10_13 = pd.merge(df, df_10_, on = 'LINK_ID')
+
+##혼잡시간강도합이 가장 높은 도로
+df_10_13.iloc[df_10_13['혼잡시간강도합'].sort_values(ascending = False).index].reindex().head()
+
+
+
+
+# +
+# df_10_13.loc[df_10_13['혼잡시간강도합'] == 0, '혼잡시간강도합'] = '1'
+
+# +
+layer = pdk.Layer( 'PathLayer',
+                  df_10_13,
+                  get_path = 'coordinates',
+                  get_width = '혼잡시간강도합/10',
+                  get_color = '[255, 255* 정규화도로폭, 120]',
+                  pickable = True,
+                  auto_highlight = True
+                 )
+
+center = [128.5918, 38.20701]  ## 속초 center lon경도, lat위도
+view_state = pdk.ViewState(
+    longitude = center[0],
+    latitude = center[1],
+    zoom=12
+)
+
+r = pdk.Deck(layers = [layer], initial_view_state = view_state)
+
+r.to_html()
+
+# +
+## 급속충전소 설치가능 장소 필터링
+## 목적 : 급속 충전소의 경우 사유지는 제외 해야하므로 설치 가능 장소 필터링이 필요함
+## 데이터 : 소유지정보.csv
+## 사유지를 포함한 임야, 염전, 도로, 철도 용지, 제방, 하천과 같이 설치가 부적절한 곳을 
+## 필터링한 polygon 을 시각화함
+## 앞서 도출한 인구현황 100x100 point  데이터셋에서 설치가능한 장소에 해당하는 point를 추출하였음
 # -
+
+df_14 = gpd.read_file('14.소유지정보.geojson')
+df_14
+
+df_14.columns
+
+len(df_14)
+
+df_14.isna().sum() ## 결측치 확인
+
+# +
+df_14_ = df_14[df_14['소유지구분코드'].isin(['02','04'])] ## 소유지구분코드 : 국유지 시/군
+
+
+# -
+
+
+
+
 
 

@@ -90,7 +90,7 @@ df_last.head()
 
 # + colab={} colab_type="code" id="odvB6ab7JZUu"
 # tail 로도 미리보기를 합니다.
-
+df_last.tail()
 
 # + [markdown] colab_type="text" id="ruVmuOlXJZUw"
 # ### 2015년 부터 최근까지의 데이터 로드
@@ -99,27 +99,31 @@ df_last.head()
 # -
 
 # 해당되는 폴더 혹은 경로의 파일 목록을 출력해 줍니다.
-
+df_first = pd.read_csv('data/전국 평균 분양가격(2013년 9월부터 2015년 8월까지).csv', encoding='cp949')
+df_first
 
 # + colab={} colab_type="code" id="vI9ANsK7JZUx"
 # df_first 에 담고 shape로 행과 열의 수를 출력해 봅니다.
-df_first
+df_first.shape
 
 
 # + colab={} colab_type="code" id="NrnsHAX9JZUz"
 # df_first 변수에 담긴 데이터프레임을 head로 미리보기 합니다.
-
+df_first.head()
 
 # + colab={} colab_type="code" id="7uLubVT-JZU1"
 # df_first 변수에 담긴 데이터프레임을 tail로 미리보기 합니다.
-
+df_first.tail()
 
 # + [markdown] colab_type="text" id="sRgcY7H7JZU3"
 # ### 데이터 요약하기
 
 # + colab={} colab_type="code" id="rG_jMT8CJZU3"
 # info 로 요약합니다.
+df_first.info()
+# -
 
+df_last.info()
 
 # + [markdown] colab_type="text" id="0MekOAekJZU5"
 # ### 결측치 보기
@@ -130,15 +134,15 @@ df_first
 # -
 
 # isnull 을 통해 결측치를 봅니다.
-
+df_last.isnull()
 
 # + colab={} colab_type="code" id="CqaWXfocJZU7"
 # isnull 을 통해 결측치를 구합니다.
-
+df_last.isnull()
 
 # + colab={} colab_type="code" id="jIf6_IFvJZU8"
 # isna 를 통해 결측치를 구합니다.
-
+df_last.isna().sum()
 
 # + [markdown] colab_type="text" id="9PNqs0q4JZU_"
 # ### 데이터 타입 변경
@@ -146,7 +150,14 @@ df_first
 
 # + colab={} colab_type="code" id="YdqsOWagJZVA"
 
+df_last.columns
+# -
 
+df_last['분양가격(㎡)']=df_last['분양가격(㎡)'].astype(int)
+
+df_last['분양가격'] = pd.to_numeric(df_last['분양가격(㎡)'], errors = 'coerce') ## errors coerce는 에러를 무시하고 강제로 변환하는것
+df_last['분양가격'].head(1)
+##  결측치 때문에  float으로 변환됨
 
 # + [markdown] colab_type="text" id="kdeItDwvJZVE"
 # ### 평당분양가격 구하기
@@ -154,8 +165,8 @@ df_first
 # 분양가격을 평당기준으로 보기위해 3.3을 곱해서 "평당분양가격" 컬럼을 만들어 추가해 줍니다.
 
 # + colab={} colab_type="code" id="y0dqodhEJZVE"
-
-
+df_last['평당분양가격'] = df_last['분양가격'] * 3.3
+df_last.head(1)
 
 # + [markdown] colab_type="text" id="O0PFKeVrJZVG"
 # ### 분양가격 요약하기

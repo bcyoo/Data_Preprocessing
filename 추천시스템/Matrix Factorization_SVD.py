@@ -192,6 +192,5 @@ displayMovies(movies, logs['movieId'].values, logs['rating'].values)
 
 print("recs")
 displayMovies(movies, recs.index, recs['pred'].values)
-# -
-
+# 
 

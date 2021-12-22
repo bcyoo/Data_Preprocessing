@@ -104,7 +104,7 @@ for idx, row in candidates_df[0:20].iterrows():
         '''
     
 display(HTML(html))
-# 
+# -
 
 
 
